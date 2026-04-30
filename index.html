@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TDS Calculator</title>
+
+<style>
+body {font-family: Arial; background:#f2f2f2; margin:0;}
+.container {max-width:420px;margin:auto;padding:10px;}
+.card {background:#fff;padding:15px;border-radius:10px;margin-bottom:10px;}
+input {width:100%;padding:10px;margin:5px 0;border-radius:8px;border:1px solid #ccc;}
+button {width:100%;padding:12px;background:#1976d2;color:#fff;border:none;border-radius:8px;margin-top:10px;}
+.month {background:#f9f9f9;padding:10px;margin-top:10px;border-radius:10px;}
+.hidden {display:none;}
+.result {background:#e8f5e9;padding:10px;margin-top:15px;border-radius:10px;}
+.result button {background:#2e7d32;}
+label {font-weight:bold;}
+.error {color:red;font-size:13px;}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<!-- PAGE 1 -->
+<div id="page1" class="card">
+<h3>Basic Details</h3>
+
+<label>EMPLOYEE NAME</label>
+<input id="name">
+
+<label>DESIGNATION</label>
+<input id="designation">
+
+<label>PAN NO.</label>
+<input id="pan">
+<div id="panError" class="error"></div>
+
+<label>TAN OF DEDUCTOR</label>
+<input id="tan">
+
+<label>TREASURY OFFICE</label>
+<input id="treasury">
+
+<label>DDO ADDRESS AND DISTRICT</label>
+<input id="address">
+
+<button onclick="next()">Next ➡️</button>
+</div>
+
+<!-- PAGE 2 -->
+<div id="page2" class="card hidden">
+<h3>Salary Details</h3>
+
+<div id="months"></div>
+
+<label>PROFESSIONAL TAX IN SEPT</label>
+<input id="ptax" inputmode="numeric">
+
+<button onclick="back()">⬅ Back</button>
+<button id="submitBtn" onclick="submitForm()">Submit</button>
+
+<div id="result" class="result hidden">
+  <h4>✅ Completed</h4>
+  <button onclick="downloadPDF()">📥 Download PDF</button>
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+// CAPITAL LETTER AUTO
+["name","designation","pan","tan","address","treasury"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", function(){
+    this.value = this.value.toUpperCase();
+  });
+});
+
+// PAN VALIDATION
+function validatePAN(pan){
+  return /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan);
+}
+
+// NAVIGATION
+function next(){
+  const pan = document.getElementById("pan").value;
+  if(!validatePAN(pan)){
+    document.getElementById("panError").innerText = "Enter valid PAN No.";
+    return;
+  } else {
+    document.getElementById("panError").innerText = "";
+  }
+
+  document.getElementById("page1").classList.add("hidden");
+  document.getElementById("page2").classList.remove("hidden");
+}
+
+function back(){
+  document.getElementById("page2").classList.add("hidden");
+  document.getElementById("page1").classList.remove("hidden");
+}
+
+// MONTHS
+const monthsList = ["MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC","JAN","FEB"];
+const container = document.getElementById("months");
+
+monthsList.forEach((m)=>{
+  container.innerHTML += `
+  <div class="month">
+    <b>${m}</b>
+    <input class="basic" inputmode="numeric" oninput="onlyNumber(this)">
+    <input class="da" inputmode="numeric" oninput="onlyNumber(this)">
+    <input class="hra" inputmode="numeric" oninput="onlyNumber(this)">
+    <label><input type="checkbox" class="same"> Same as previous</label>
+  </div>`;
+});
+
+// ONLY NUMBER
+function onlyNumber(el){
+  el.value = el.value.replace(/[^0-9]/g,'');
+}
+
+// SAME AS PREVIOUS
+const monthDivs = document.querySelectorAll(".month");
+
+monthDivs.forEach((div,i)=>{
+  const checkbox = div.querySelector(".same");
+
+  checkbox.addEventListener("change", ()=>{
+    if(checkbox.checked && i>0){
+      copyPrev(i);
+    }
+  });
+
+  if(i>0){
+    const prev = monthDivs[i-1];
+    prev.querySelectorAll("input").forEach(inp=>{
+      inp.addEventListener("input", ()=>{
+        if(checkbox.checked){
+          copyPrev(i);
+        }
+      });
+    });
+  }
+});
+
+function copyPrev(i){
+  const prev = monthDivs[i-1];
+  const curr = monthDivs[i];
+
+  curr.querySelector(".basic").value = prev.querySelector(".basic").value;
+  curr.querySelector(".da").value = prev.querySelector(".da").value;
+  curr.querySelector(".hra").value = prev.querySelector(".hra").value;
+}
+
+// GLOBAL
+let sheetURL = "";
+let sheetId = "";
+let isProcessing = false;
+
+// SUBMIT
+function submitForm(){
+
+  if(isProcessing) return;
+
+  isProcessing = true;
+
+  const btn = document.getElementById("submitBtn");
+  btn.innerText = "Processing...";
+  btn.disabled = true;
+
+  const monthsData = [];
+
+  document.querySelectorAll(".month").forEach(div=>{
+    monthsData.push({
+      basic: div.querySelector(".basic").value,
+      da: div.querySelector(".da").value,
+      hra: div.querySelector(".hra").value
+    });
+  });
+
+  const formData = new URLSearchParams();
+
+  formData.append("name", document.getElementById("name").value);
+  formData.append("designation", document.getElementById("designation").value);
+  formData.append("pan", document.getElementById("pan").value);
+  formData.append("tan", document.getElementById("tan").value);
+  formData.append("treasury", document.getElementById("treasury").value);
+  formData.append("address", document.getElementById("address").value);
+  formData.append("ptax", document.getElementById("ptax").value);
+  formData.append("months", JSON.stringify(monthsData));
+
+  fetch("https://script.google.com/macros/s/AKfycbziGIjGqCbXGp4mow95nyq_OJXNlU005qeYhCppKpnf2DGUb8_YbACAwFMhilrSJ0Lnzg/exec", {
+    method:"POST",
+    body: formData
+  })
+  .then(res=>res.json())
+  .then(res=>{
+
+    isProcessing = false;
+    btn.innerText = "Submit";
+    btn.disabled = true;
+
+    if(res.status !== "success"){
+      alert(res.message);
+      return;
+    }
+
+    sheetId = res.sheetUrl.split("/d/")[1].split("/")[0];
+
+    document.getElementById("result").classList.remove("hidden");
+
+  })
+  .catch(err=>{
+    isProcessing = false;
+    btn.innerText = "Submit";
+    btn.disabled = false;
+    alert(err);
+  });
+}
+
+// PDF DOWNLOAD
+function downloadPDF(){
+
+  const url =
+    "https://docs.google.com/spreadsheets/d/" + sheetId +
+    "/export?format=pdf&size=A4&portrait=true&fitw=true&scale=2" +
+    "&top_margin=0.2&bottom_margin=0.2&left_margin=0.2&right_margin=0.2";
+
+  window.open(url, "_blank");
+}
+
+</script>
+
+</body>
+</html>
