@@ -222,7 +222,7 @@ function submitForm(){
   });
 }
 
-// PDF DOWNLOAD
+/* PDF DOWNLOAD it was downloading sheet 
 function downloadPDF(){
 
   const url =
@@ -231,8 +231,20 @@ function downloadPDF(){
     "&top_margin=0.2&bottom_margin=0.2&left_margin=0.2&right_margin=0.2";
 
   window.open(url, "_blank");
-}
+}*/
+function downloadPDF(){
 
+  const url =
+    "https://docs.google.com/spreadsheets/d/" + sheetId +
+    "/export?format=pdf&exportFormat=pdf&size=A4&portrait=true&fitw=true&scale=2" +
+    "&top_margin=0.2&bottom_margin=0.2&left_margin=0.2&right_margin=0.2" +
+    "&sheetnames=false&printtitle=false&pagenumbers=false&gridlines=false&fzr=false";
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.target = "_blank";
+  link.click();
+}
 </script>
 
 </body>
