@@ -232,7 +232,7 @@ function downloadPDF(){
 
   window.open(url, "_blank");
 }*/
-function downloadPDF(){
+/*function downloadPDF(){
 
   const url =
     "https://docs.google.com/spreadsheets/d/" + sheetId +
@@ -244,6 +244,9 @@ function downloadPDF(){
   link.href = url;
   link.target = "_blank";
   link.click();
+}*/
+function downloadPDF(){
+window.open("https://docs.google.com/spreadsheets/d/"+sheetId+"/export?format=pdf&fitw=true&scale=2");
 }
 </script>
 
